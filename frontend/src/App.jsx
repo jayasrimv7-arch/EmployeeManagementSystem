@@ -7,6 +7,7 @@ import UpdateEmployee from './Components/UpdateEmployee'
 import DeleteEmployee from './Components/DeleteEmployee'
 import Login from './Components/Login'
 import EmployeeDetails from './Components/EmployeeDetails'
+import LogoutConfirmation from './Components/LogoutConfirmation'
 import { API_BASE_URL } from './apiconfig'
 
 const API_URL = `${API_BASE_URL}/api/employees`
@@ -46,9 +47,11 @@ function App() {
   const [activeView, setActiveView] = useState('dashboard')
   const [search, setSearch] = useState('')
   const [department, setDepartment] = useState('All')
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' })
 
   const [showForm, setShowForm] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState(null)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -100,6 +103,39 @@ function App() {
       (employee.department || '').toUpperCase() === department
     )
   )
+
+  const sortedEmployees = [...filteredEmployees].sort((first, second) => {
+    if (sortConfig.key === 'name') {
+      const comparison = (first.employeeName || '').localeCompare(
+        second.employeeName || '',
+        undefined,
+        { sensitivity: 'base' }
+      )
+      return sortConfig.direction === 'asc' ? comparison : -comparison
+    }
+
+    if (sortConfig.key === 'joiningDate') {
+      const firstDate = Date.parse(first.joiningDate || '')
+      const secondDate = Date.parse(second.joiningDate || '')
+      const firstMissing = Number.isNaN(firstDate)
+      const secondMissing = Number.isNaN(secondDate)
+
+      if (firstMissing !== secondMissing) return firstMissing ? 1 : -1
+
+      const comparison = firstDate - secondDate
+      return sortConfig.direction === 'asc' ? comparison : -comparison
+    }
+
+    return 0
+  })
+
+  const toggleSort = key => {
+    setSortConfig(current => ({
+      key,
+      direction:
+        current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }
 
   const departmentStats = DEPARTMENTS.map(item => ({
     ...item,
@@ -164,6 +200,11 @@ function App() {
   }
 
   const handleLogout = () => {
+    setShowLogoutConfirm(true)
+  }
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false)
     setAuthUser(null)
     setEmployees([])
     setMessage('')
@@ -178,7 +219,7 @@ function App() {
     return (
       <EmployeeDetails
         employee={authUser.employee}
-        onLogout={handleLogout}
+        onLogout={confirmLogout}
       />
     )
   }
@@ -465,12 +506,40 @@ function App() {
 
                 <thead>
                   <tr>
-                    <th>Employee</th>
+                    <th aria-sort={sortConfig.key === 'name' ? sortConfig.direction === 'asc' ? 'ascending' : 'descending' : 'none'}>
+                      <button
+                        type="button"
+                        className="table-sort-button"
+                        aria-label="Sort by employee name"
+                        onClick={() => toggleSort('name')}
+                      >
+                        Employee
+                        <span aria-hidden="true">
+                          {sortConfig.key === 'name'
+                            ? sortConfig.direction === 'asc' ? '↑' : '↓'
+                            : '↕'}
+                        </span>
+                      </button>
+                    </th>
                     <th>Mobile</th>
                     <th>Department</th>
                     <th>Designation</th>
                     <th>Salary</th>
-                    <th>Joining Date</th>
+                    <th aria-sort={sortConfig.key === 'joiningDate' ? sortConfig.direction === 'asc' ? 'ascending' : 'descending' : 'none'}>
+                      <button
+                        type="button"
+                        className="table-sort-button"
+                        aria-label="Sort by joining date"
+                        onClick={() => toggleSort('joiningDate')}
+                      >
+                        Joining Date
+                        <span aria-hidden="true">
+                          {sortConfig.key === 'joiningDate'
+                            ? sortConfig.direction === 'asc' ? '↑' : '↓'
+                            : '↕'}
+                        </span>
+                      </button>
+                    </th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -485,7 +554,7 @@ function App() {
                     </tr>
                   )}
 
-                  {!loading && filteredEmployees.map(employee => (
+                  {!loading && sortedEmployees.map(employee => (
 
                     <tr key={employee.employeeId}>
 
@@ -509,7 +578,11 @@ function App() {
                         ₹{Number(employee.salary).toLocaleString('en-IN')}
                       </td>
 
-                      <td>{employee.joiningDate}</td>
+                      <td>
+                        <time dateTime={employee.joiningDate || undefined}>
+                          {formatDate(employee.joiningDate)}
+                        </time>
+                      </td>
 
                       <td>
 
@@ -630,6 +703,13 @@ function App() {
 
         </div>
 
+      )}
+
+      {showLogoutConfirm && (
+        <LogoutConfirmation
+          onCancel={() => setShowLogoutConfirm(false)}
+          onConfirm={confirmLogout}
+        />
       )}
 
     </div>

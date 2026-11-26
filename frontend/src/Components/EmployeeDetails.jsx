@@ -1,13 +1,41 @@
+import { useState } from 'react'
+import LogoutConfirmation from './LogoutConfirmation'
+
+const formatJoiningDate = value => {
+  if (!value) return value
+
+  const date = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return value
+
+  return date.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  })
+}
+
 function EmployeeDetails({ employee, onLogout }) {
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+
   if (!employee) {
     return (
       <main className="employee-portal">
         <section className="employee-profile-empty" role="alert">
           <h1>Profile unavailable</h1>
           <p>Your employee details could not be loaded. Please sign in again.</p>
-          <button type="button" className="employee-portal-signout" onClick={onLogout}>
+          <button
+            type="button"
+            className="employee-portal-signout"
+            onClick={() => setShowLogoutConfirm(true)}
+          >
             Sign out
           </button>
+          {showLogoutConfirm && (
+            <LogoutConfirmation
+              onCancel={() => setShowLogoutConfirm(false)}
+              onConfirm={onLogout}
+            />
+          )}
         </section>
       </main>
     )
@@ -36,7 +64,7 @@ function EmployeeDetails({ employee, onLogout }) {
     { label: 'Department', value: employee.department },
     { label: 'Designation', value: employee.designation },
     { label: 'Salary', value: salaryText },
-    { label: 'Joining date', value: employee.joiningDate }
+    { label: 'Joining date', value: formatJoiningDate(employee.joiningDate) }
   ]
 
   return (
@@ -52,7 +80,7 @@ function EmployeeDetails({ employee, onLogout }) {
         <button
           type="button"
           className="employee-portal-signout"
-          onClick={onLogout}
+          onClick={() => setShowLogoutConfirm(true)}
         >
           Sign out
         </button>
@@ -104,6 +132,12 @@ function EmployeeDetails({ employee, onLogout }) {
           For changes to your employee information, please contact your administrator.
         </p>
       </section>
+      {showLogoutConfirm && (
+        <LogoutConfirmation
+          onCancel={() => setShowLogoutConfirm(false)}
+          onConfirm={onLogout}
+        />
+      )}
     </main>
   )
 }

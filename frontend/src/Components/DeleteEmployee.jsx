@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { API_BASE_URL } from '../apiconfig'
 
 const API_URL = `${API_BASE_URL}/api/employees`
@@ -66,7 +67,7 @@ function DeleteEmployee({ employee, onEmployeeDeleted }) {
         Delete
       </button>
 
-      {showConfirmation && (
+      {showConfirmation && createPortal(
         <div
           className="delete-confirm-overlay"
           onClick={closeConfirmation}
@@ -107,7 +108,8 @@ function DeleteEmployee({ employee, onEmployeeDeleted }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )
