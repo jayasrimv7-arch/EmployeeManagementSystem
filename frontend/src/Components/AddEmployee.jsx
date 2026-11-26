@@ -1,0 +1,241 @@
+import { useRef, useState } from 'react'
+import { API_BASE_URL } from '../apiconfig'
+
+const API_URL = `${API_BASE_URL}/api/employees`
+
+const initialForm = {
+  name: '',
+  email: '',
+  mobile: '',
+  department: 'IT',
+  designation: '',
+  salary: '',
+  joiningDate: ''
+}
+
+function AddEmployee({ onEmployeeAdded, onCancel }) {
+  const [form, setForm] = useState(initialForm)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const joiningDateRef = useRef(null)
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const openJoiningDatePicker = () => {
+    const dateInput = joiningDateRef.current
+    if (!dateInput) return
+
+    if (typeof dateInput.showPicker === 'function') {
+      dateInput.showPicker()
+    } else {
+      dateInput.focus()
+      dateInput.click()
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    const requiredFields = [
+      ['Employee name', form.name],
+      ['Email address', form.email],
+      ['Mobile number', form.mobile],
+      ['Department', form.department],
+      ['Designation', form.designation],
+      ['Salary', form.salary],
+      ['Joining date', form.joiningDate]
+    ]
+    const missingField = requiredFields.find(([, value]) => !value.trim())
+
+    if (missingField) {
+      setError(`${missingField[0]} is required.`)
+      return
+    }
+
+    setLoading(true)
+    setError('')
+
+    const employeeData = {
+      employeeName: form.name.trim(),
+      email: form.email.trim(),
+      mobileNumber: form.mobile.trim(),
+      department: form.department,
+      designation: form.designation.trim(),
+      salary: Number(form.salary),
+      joiningDate: form.joiningDate || null
+    }
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(employeeData)
+      })
+
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(
+          result.message ||
+          Object.values(result).join(', ') ||
+          'Unable to add employee'
+        )
+      }
+
+      onEmployeeAdded?.(result)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="employee-form">
+      <div className="form-header">
+        <div>
+          <h2>Add New Employee</h2>
+          <p>Enter the details to create an employee record.</p>
+        </div>
+      </div>
+
+      {error && <div className="form-error">{error}</div>}
+
+      <form onSubmit={handleSubmit}>
+        <div className="employee-form-grid">
+          <div className="form-group">
+            <label>Employee Name *</label>
+            <input
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Enter full name"
+              required
+              maxLength="50"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Email Address *</label>
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="example@email.com"
+              required
+              maxLength="50"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Mobile Number *</label>
+            <input
+              type="tel"
+              name="mobile"
+              value={form.mobile}
+              onChange={handleChange}
+              placeholder="Enter mobile number"
+              required
+              maxLength="15"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Department *</label>
+            <select
+              name="department"
+              value={form.department}
+              onChange={handleChange}
+              required
+            >
+              <option value="IT">IT</option>
+              <option value="HR">HR</option>
+              <option value="FINANCE">Finance</option>
+              <option value="PRODUCTION">Production</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Designation *</label>
+            <input
+              name="designation"
+              value={form.designation}
+              onChange={handleChange}
+              placeholder="Enter designation"
+              required
+              maxLength="30"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Salary *</label>
+            <input
+              type="number"
+              name="salary"
+              value={form.salary}
+              onChange={handleChange}
+              placeholder="Enter salary"
+              required
+              min="0"
+              step="0.01"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="joining-date">Joining Date *</label>
+            <div className={`date-input-control${form.joiningDate ? ' has-date' : ''}`}>
+              <input
+                ref={joiningDateRef}
+                id="joining-date"
+                type="date"
+                name="joiningDate"
+                value={form.joiningDate}
+                onChange={handleChange}
+                required
+              />
+              {!form.joiningDate && (
+                <span className="date-input-placeholder" aria-hidden="true">
+                  Select a date...
+                </span>
+              )}
+              <button
+                type="button"
+                className="date-picker-btn"
+                aria-label="Choose joining date"
+                onClick={openJoiningDatePicker}
+              >
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                  <rect x="3" y="5" width="14" height="12" rx="2" />
+                  <path d="M6 3.5v3M14 3.5v3M3.5 8.5h13" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="employee-form-actions">
+          <button
+            type="button"
+            className="form-cancel-btn"
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            className="form-submit-btn"
+            disabled={loading}
+          >
+            {loading ? 'Saving...' : 'Save Employee'}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+export default AddEmployee
